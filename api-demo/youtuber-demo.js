@@ -35,17 +35,24 @@ db.set(id++, y3)
 // REST API 설계
 app.get('/ys', (req, res) => {
     var ys = {}
-    db.forEach((value, key) => {
-        ys[key] = value
-    })
-    res.json(ys)
+    if (db.size !== 0) {
+        db.forEach((value, key) => {
+            ys[key] = value
+        })
+        res.json(ys)
+    } else {
+        res.status(404).json({
+            message : "no y"
+        })
+    }
 })
+
 app.get('/ys/:id', function (req, res) {
     let {id} = req.params
     id = parseInt(id)
     const y = db.get(id)
     if (y == undefined) {
-        res.json({
+        res.status(404).json({
             message: "error"
         })
     } else {
@@ -57,14 +64,17 @@ app.get('/ys/:id', function (req, res) {
 app.use(express.json())
 
 app.post('/ys', (req, res) => {
-    console.log(req.body)
-
-    // 등록: Map(db)에 저장(set)
-    db.set(id++, req.body)
-
-    res.json({
-        message : `${db.get(id-1).title}, registration completed`
-    })
+    const title = req.body.title
+    if (title) {
+        db.set(id++, req.body)
+        res.status(201).json({
+            message : `${db.get(id-1).title}, registration completed`
+        })
+    } else {
+        res.status(400).json({
+            message : "error"
+        })
+    }
 })
 
 // 삭제
@@ -72,31 +82,30 @@ app.delete('/ys/:id', (req, res) => {
     let {id} = req.params
     id = parseInt(id)
     var y = db.get(id)
-    if (y == undefined) {
-        res.json({
-            message : `there is no id ${id}`
-        })
-    } else {
+    if (y) {
         const title = y.title
         db.delete(id)
-
         res.json({
             message : `${title}, deletion completed`
+        })
+    } else {
+        res.status(404).json({
+            message : `there is no id ${id}`
         })
     }
 })
 
 app.delete('/ys', (req, res) => {
-    var msg = ""
     if (db.size >= 1) {
         db.clear()
-        msg = "full deletion completed"
+        res.json({
+            message : "full deletion completed"
+        })
     } else {
-        msg = "noting"
+        res.status(404).json({
+            message : "noting"
+        })
     }
-    res.json({
-        message : msg
-    })
 })
 
 app.put('/ys/:id', (req, res) => {
@@ -105,7 +114,7 @@ app.put('/ys/:id', (req, res) => {
     var y = db.get(id)
     var prevTitle = y.title
     if (y == undefined) {
-        res.json({
+        res.status(404).json({
             message : `there is no id ${id}`
         })
     } else {
